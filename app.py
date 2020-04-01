@@ -115,6 +115,21 @@ def logout():
 
     # IMPLEMENT THIS
 
+    # Do we need to check if they're the current user?
+    # If they aren't we should log them out anyway?
+    # if not g.user:
+    #     flash("Access unauthorized.", "danger")
+    #     return redirect("/")
+    
+
+    do_logout()
+
+    flash("Success! You're logged out.", 'success')
+    return redirect('/login')
+
+    
+    
+
 
 ##############################################################################
 # General user routes:
@@ -212,6 +227,12 @@ def profile():
     """Update profile for current user."""
 
     # IMPLEMENT THIS
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    
 
 
 @app.route('/users/delete', methods=["POST"])
