@@ -4,8 +4,8 @@ from flask import Flask, render_template, request, flash, redirect, session, g
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
-from forms import UserAddForm, LoginForm, MessageForm
-from models import db, connect_db, User, Message
+from forms import UserAddForm, LoginForm, MessageForm, EditUserForm
+from models import db, connect_db, User, Message, Follows
 
 CURR_USER_KEY = "curr_user"
 
@@ -232,7 +232,24 @@ def profile():
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
-    
+    form = EditUserForm(obj=g.user)
+
+    if form.validate_on_submit():
+        user = User.authenticate(g.user.username,
+                                 form.password.data)
+        if user:
+            user.username = form.username.data
+            user.email = form.email.data
+            user.image_url = form.image_url.data
+            user.header_image = form.header_image_url.data
+            user.bio = form.bio.data
+
+            db.session.commit()
+            return redirect(f"/users/{user.id}")
+        else:
+            flash("Invalid credentials.", 'danger')
+            return redirect('/')
+    return render_template("users/edit.html", form=form, )
 
 
 @app.route('/users/delete', methods=["POST"])
@@ -313,18 +330,19 @@ def homepage():
     """
 
     if g.user:
+        following_list = [user.user_being_followed_id for user in Follows.query.filter(g.user.id == Follows.user_following_id)]
         messages = (Message
                     .query
+                    .filter(db.or_(Message.user_id == g.user.id, Message.user_id.in_(following_list)))
                     .order_by(Message.timestamp.desc())
                     .limit(100)
                     .all())
-
         return render_template('home.html', messages=messages)
 
     else:
         return render_template('home-anon.html')
 
-
+# db.session.query(Message).filter(user_id in_(g.user.following))
 ##############################################################################
 # Turn off all caching in Flask
 #   (useful for dev; in production, this kind of stuff is typically
