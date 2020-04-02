@@ -7,8 +7,6 @@ from sqlalchemy.exc import IntegrityError
 from forms import UserAddForm, LoginForm, MessageForm, EditUserForm
 from models import db, connect_db, User, Message, Follows, Likes
 
-
-
 CURR_USER_KEY = "curr_user"
 
 app = Flask(__name__)
@@ -182,15 +180,14 @@ def users_likes_show(user_id):
 
     # snagging messages in order from the database;
     # user.
-    like_ids=[l.message_id for l in Likes.query.filter_by(user_id=user_id).all()]
+    like_ids = [l.message_id for l in Likes.query.filter_by(user_id=user_id).all()]
 
     messages = (Message
                 .query
-                .filter(user_id.in_(like_ids))
+                .filter(Message.id.in_(like_ids))
                 .order_by(Message.timestamp.desc())
                 .all())
-    import pdb; pdb.set_trace()
-    return render_template('users/show.html', likes=like_ids, user=user, messages=messages)
+    return render_template('users/show_user_likes.html', likes=like_ids, user=user, messages=messages)
 
 
 @app.route('/users/<int:user_id>/following')
