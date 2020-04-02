@@ -109,11 +109,12 @@ class User(db.Model):
         primaryjoin=(Follows.user_following_id == id),
         secondaryjoin=(Follows.user_being_followed_id == id)
     )
-
-    likes = db.relationship(
-        'Message',
-        secondary="likes"
+    # currently getting the messages, maybe better named liked_messages
+    likes = db.relationship(  # gets messages
+        'Message',  # Message class instances that were liked, but not from Like table
+        secondary="likes"  # "through" this table to get the thing above
     )
+    likes2 = db.relationship('Likes')  # gets like objects from likes table
 
     def __repr__(self):
         return f"<User #{self.id}: {self.username}, {self.email}>"

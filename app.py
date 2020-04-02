@@ -165,8 +165,9 @@ def users_show(user_id):
                 .order_by(Message.timestamp.desc())
                 .limit(100)
                 .all())
-    likes=[l.message_id for l in Likes.query.filter_by(user_id=g.user.id).all()]
+    likes = user.likes
     return render_template('users/show.html', likes=likes, user=user, messages=messages)
+
 
 @app.route('/users/<int:user_id>/likes')
 def users_likes_show(user_id):
@@ -179,15 +180,9 @@ def users_likes_show(user_id):
     user = User.query.get_or_404(user_id)
 
     # snagging messages in order from the database;
-    # user.
-    like_ids = [l.message_id for l in Likes.query.filter_by(user_id=user_id).all()]
 
-    messages = (Message
-                .query
-                .filter(Message.id.in_(like_ids))
-                .order_by(Message.timestamp.desc())
-                .all())
-    return render_template('users/show_user_likes.html', likes=like_ids, user=user, messages=messages)
+    messages = user.likes
+    return render_template('users/show_user_likes.html', user=user, messages=messages)
 
 
 @app.route('/users/<int:user_id>/following')
@@ -353,20 +348,17 @@ def like_or_unlike_message(message_id):
     message = Message.query.get_or_404(message_id)
 
     if g.user.id == message.user_id:
-        
+
         return redirect(request.referrer)
-    
+
+    like = Likes.query.filter_by(message_id=message_id).filter_by(user_id=g.user.id).first()
+
+    if like:
+        db.session.delete(like)
+
     else:
-
-        like = Likes.query.filter_by(message_id=message_id).filter_by(user_id=g.user.id).first()
-
-        if like:
-            db.session.delete(like)
-                
-        else:
-            new_like = Likes(user_id = g.user.id,
-                        message_id = message_id)
-            db.session.add(new_like)
+        new_like = Likes(user_id=g.user.id, message_id=message_id)
+        db.session.add(new_like)
 
     db.session.commit()
 
