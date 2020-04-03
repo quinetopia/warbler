@@ -39,6 +39,22 @@ class UserModelTestCase(TestCase):
         Message.query.delete()
         Follows.query.delete()
 
+        u1 = User(
+            email="test1@test.com",
+            username="testuser1",
+            password="HASHED_PASSWORD"
+        )
+
+        db.session.add(u1)
+
+        u2 = User(
+            email="test2@test.com",
+            username="testuser2",
+            password="HASHED_PASSWORD"
+        )
+
+        db.session.add(u2)
+
         self.client = app.test_client()
 
     def test_user_model(self):
@@ -56,3 +72,16 @@ class UserModelTestCase(TestCase):
         # User should have no messages & no followers
         self.assertEqual(len(u.messages), 0)
         self.assertEqual(len(u.followers), 0)
+
+    def test_is_following(self):
+        """ Does is_following actually detect follows? """
+        u1 = User.query.filter(User.username == 'testuser1').first()
+        u2 = User.query.filter(User.username == 'testuser2').first()
+
+        new_follow = Follows(user_being_followed_id = u1.id, user_following_id = u2.id)
+        db.session.add(new_follow)
+        db.session.commit()
+
+        # u1 is actually being followed by u2, but not the reverse
+        self.assertEqual(u1.is_following(u2), False)
+        self.assertEqual(u2.is_following(u1), True)
