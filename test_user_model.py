@@ -127,24 +127,51 @@ class UserModelTestCase(TestCase):
         """ test User.create with nulled credentials """
         u_null = User.signup('testuser_null', None, "cleverpassword", None)
 
-        self.assertRaises(exc.IntegrityError)
+        self.assertRaises(exc.IntegrityError, db.session.commit)
 
+    def test_user_signup_nonunique_email(self):
+        """ test User. Create with non-unique email """
+        User.signup('testuser_null', 
+                        'test1@test.com', 
+                        "cleverpassword", 
+                        None)
 
+        with self.assertRaises(exc.IntegrityError) as context:
+            db.session.commit()
 
-    # def test_user_signup(self):
-    #     """ test User.create with valid credentials and invalid credentials """        user_null = User.signup(*u_null)
-    #     user_not_unique = User.signup(*u_email_not_unique)
+    def test_authenticate_valid(self):
+        """ Test that a valid user suthentiactes."""
+        User.signup('testuser5', 
+                    'test5@test.com', 
+                    "cleverpassword", 
+                    None)
 
-    #     db.session.commit()
+        db.session.commit()
 
-    #     user_nullinstance = User.signup(*u_null)
-    #     user_not_uniqueinstance = User.signup(*u_email_not_unique)
+        u = User.authenticate('testuser5','cleverpassword')
 
-    #     self.assertRaises(exc.IntegrityError, User.signup(*u_null))
-    #     self.assertRaises(exc.IntegrityError, User.signup(*u_email_not_unique))
+        self.assertEqual(u.email, 'test5@test.com')
 
+    def test_authenticate_invalid_password(self):
+        User.signup('testuser5', 
+                    'test5@test.com', 
+                    "cleverpassword", 
+                    None)
 
-    #     valid_test_user_instance = User.query.filter_by(username='validUser').first()
-    #     self.assertTrue(valid_test_user_instance.email == 'unique@email.edu')
+        db.session.commit()
 
-    # # def test_user_authenticate(self):
+        u = User.authenticate('testuser5','badpassword')
+
+        self.assertEqual(u, False)
+
+    def test_authenticate_invalid_username(self):
+        User.signup('testuser6', 
+                    'test6@test.com', 
+                    "cleverpassword", 
+                    None)
+
+        db.session.commit()
+
+        u = User.authenticate('testuser7','cleverpassword')
+
+        self.assertEqual(u, False)
