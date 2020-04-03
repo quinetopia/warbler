@@ -129,14 +129,16 @@ def logout():
 
 ##############################################################################
 # General user routes:
-# TODO route doesn't work, returns:
-# The requested URL was not found on the server.
+# only accessed when using the seach bar
 @app.route('/users')
 def list_users():
     """Page with listing of users.
 
     Can take a 'q' param in querystring to search by that username.
     """
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
 
     search = request.args.get('q')
 
