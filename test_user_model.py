@@ -7,7 +7,7 @@
 
 import os
 from unittest import TestCase
-
+from sqlalchemy import exc
 from models import db, User, Message, Follows
 
 # BEFORE we import our app, let's set an environmental variable
@@ -108,22 +108,43 @@ class UserModelTestCase(TestCase):
         self.assertEqual(u1.is_followed_by(u2), True)
         self.assertEqual(u2.is_followed_by(u1), False)
 
-    def test_user_signup(self):
-        """ test User.create with valid credentials and invalid credentials """
 
-        u_null = ["email=None",
-                  "username='testuser_null'",
-                  "password=None"]
+    def test_user_signup_valid(self):
+        """ test User.create with valid credentials """
 
-        u_email_not_unique = ["email='test1@test.com'",
-                              "username='testuser_valid'",
-                              "password='password'"]
+        u_valid = User.signup("validUser", "unique@email.edu", "cleverpassword", None)
+        u_valid.id = 9999
+        db.session.commit()
 
-        u_valid = ["email=unique@email.edu",
-                   "username='validUser'",
-                   "password=cleverpassword"]
+        valid_test = User.query.get(9999)
 
-        # u_null shouldn't work, but what Error do we get?
-        User.signup(*u_null)
-        User.signup(*u_email_not_unique)
-        User.signup(*u_valid)
+        self.assertEqual(valid_test.username, 'validUser')
+        self.assertEqual(valid_test.email, "unique@email.edu")
+        self.assertNotEqual(valid_test.password, "cleverpassword")
+        self.assertTrue(valid_test.password.startswith("$2b$"))
+
+    def test_user_signup_null(self):
+        """ test User.create with nulled credentials """
+        u_null = User.signup('testuser_null', None, "cleverpassword", None)
+
+        self.assertRaises(exc.IntegrityError)
+
+
+
+    # def test_user_signup(self):
+    #     """ test User.create with valid credentials and invalid credentials """        user_null = User.signup(*u_null)
+    #     user_not_unique = User.signup(*u_email_not_unique)
+
+    #     db.session.commit()
+
+    #     user_nullinstance = User.signup(*u_null)
+    #     user_not_uniqueinstance = User.signup(*u_email_not_unique)
+
+    #     self.assertRaises(exc.IntegrityError, User.signup(*u_null))
+    #     self.assertRaises(exc.IntegrityError, User.signup(*u_email_not_unique))
+
+
+    #     valid_test_user_instance = User.query.filter_by(username='validUser').first()
+    #     self.assertTrue(valid_test_user_instance.email == 'unique@email.edu')
+
+    # # def test_user_authenticate(self):
