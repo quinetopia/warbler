@@ -175,3 +175,5 @@ class UserModelTestCase(TestCase):
         u = User.authenticate('testuser7','cleverpassword')
 
         self.assertEqual(u, False)
+
+    

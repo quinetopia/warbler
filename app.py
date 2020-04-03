@@ -7,6 +7,8 @@ from sqlalchemy.exc import IntegrityError
 from forms import UserAddForm, LoginForm, MessageForm, EditUserForm
 from models import db, connect_db, User, Message, Follows, Likes
 
+
+
 CURR_USER_KEY = "curr_user"
 
 app = Flask(__name__)
@@ -120,25 +122,26 @@ def logout():
     # if not g.user:
     #     flash("Access unauthorized.", "danger")
     #     return redirect("/")
+    
 
     do_logout()
 
     flash("Success! You're logged out.", 'success')
     return redirect('/login')
 
+    
+    
+
 
 ##############################################################################
 # General user routes:
-# only accessed when using the seach bar
+
 @app.route('/users')
 def list_users():
     """Page with listing of users.
 
     Can take a 'q' param in querystring to search by that username.
     """
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     search = request.args.get('q')
 
@@ -154,10 +157,6 @@ def list_users():
 def users_show(user_id):
     """Show user profile."""
 
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
-
     user = User.query.get_or_404(user_id)
 
     # snagging messages in order from the database;
@@ -168,11 +167,8 @@ def users_show(user_id):
                 .order_by(Message.timestamp.desc())
                 .limit(100)
                 .all())
-    likes = user.likes
-    return render_template('users/show.html',
-                           likes=likes, user=user,
-                           messages=messages)
-
+    likes=[l.message_id for l in Likes.query.filter_by(user_id=g.user.id).all()]
+    return render_template('users/show.html', likes=likes, user=user, messages=messages)
 
 @app.route('/users/<int:user_id>/likes')
 def users_likes_show(user_id):
@@ -185,10 +181,16 @@ def users_likes_show(user_id):
     user = User.query.get_or_404(user_id)
 
     # snagging messages in order from the database;
+    # user.
+    like_ids=[l.message_id for l in Likes.query.filter_by(user_id=user_id).all()]
 
-    messages = user.likes
-    return render_template('users/show_user_likes.html',
-                           user=user, messages=messages)
+    messages = (Message
+                .query
+                .filter(Message.user_id==user_id).filter
+                .order_by(Message.timestamp.desc())
+                .all())
+    import pdb; pdb.set_trace()
+    return render_template('users/show.html', likes=like_ids, user=user, messages=messages)
 
 
 @app.route('/users/<int:user_id>/following')
@@ -248,6 +250,8 @@ def stop_following(follow_id):
 @app.route('/users/profile', methods=["GET", "POST"])
 def profile():
     """Update profile for current user."""
+
+    # IMPLEMENT THIS
 
     if not g.user:
         flash("Access unauthorized.", "danger")
@@ -352,26 +356,25 @@ def like_or_unlike_message(message_id):
     message = Message.query.get_or_404(message_id)
 
     if g.user.id == message.user_id:
-
+        
         return redirect(request.referrer)
-
-    like = (Likes
-            .query
-            .filter_by(message_id=message_id)
-            .filter_by(user_id=g.user.id)
-            .first()
-            )
-
-    if like:
-        db.session.delete(like)
-
+    
     else:
-        new_like = Likes(user_id=g.user.id, message_id=message_id)
-        db.session.add(new_like)
+
+        like = Likes.query.filter_by(message_id=message_id).filter_by(user_id=g.user.id).first()
+
+        if like:
+            db.session.delete(like)
+                
+        else:
+            new_like = Likes(user_id = g.user.id,
+                        message_id = message_id)
+            db.session.add(new_like)
 
     db.session.commit()
 
     return redirect(request.referrer)
+
 
 
 ##############################################################################
@@ -387,29 +390,26 @@ def homepage():
     """
 
     if g.user:
-        following_ids = [user.user_being_followed_id for user in Follows.query
-                         .filter(g.user.id == Follows.user_following_id)]
+        following_ids = [user.user_being_followed_id for user in Follows.query.filter(g.user.id == Follows.user_following_id)]
         messages = (Message
                     .query
-                    .filter(db.or_(Message.user_id == g.user.id,
-                                   Message.user_id.in_(following_ids)))
+                    .filter(db.or_(Message.user_id == g.user.id, Message.user_id.in_(following_ids)))
                     .order_by(Message.timestamp.desc())
                     .limit(100)
                     .all())
-        likes = [l.message_id for l in Likes.query
-                 .filter_by(user_id=g.user.id).all()]
+        likes=[l.message_id for l in Likes.query.filter_by(user_id=g.user.id).all()]
         return render_template('home.html', messages=messages, likes=likes)
 
     else:
         return render_template('home-anon.html')
 
+# db.session.query(Message).filter(user_id in_(g.user.following))
 ##############################################################################
 # Turn off all caching in Flask
 #   (useful for dev; in production, this kind of stuff is typically
 #   handled elsewhere)
 #
 # https://stackoverflow.com/questions/34066804/disabling-caching-in-flask
-
 
 @app.after_request
 def add_header(req):
