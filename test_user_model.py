@@ -57,6 +57,11 @@ class UserModelTestCase(TestCase):
 
         self.client = app.test_client()
 
+    def tearDown(self):
+        """ clean slate each time"""
+
+        db.session.rollback()
+
     def test_user_model(self):
         """Does basic model work?"""
 
@@ -78,10 +83,41 @@ class UserModelTestCase(TestCase):
         u1 = User.query.filter(User.username == 'testuser1').first()
         u2 = User.query.filter(User.username == 'testuser2').first()
 
-        new_follow = Follows(user_being_followed_id = u1.id, user_following_id = u2.id)
+        new_follow = Follows(user_being_followed_id=u1.id,
+                             user_following_id=u2.id)
+
         db.session.add(new_follow)
         db.session.commit()
 
         # u1 is actually being followed by u2, but not the reverse
         self.assertEqual(u1.is_following(u2), False)
         self.assertEqual(u2.is_following(u1), True)
+
+    def test_is_followed_by(self):
+        """ Does is_followed_by actually detect follows? """
+        u1 = User.query.filter(User.username == 'testuser1').first()
+        u2 = User.query.filter(User.username == 'testuser2').first()
+
+        new_follow = Follows(user_being_followed_id=u1.id,
+                             user_following_id=u2.id)
+
+        db.session.add(new_follow)
+        db.session.commit()
+
+        # u1 is actually being followed by u2, but not the reverse
+        self.assertEqual(u1.is_followed_by(u2), True)
+        self.assertEqual(u2.is_followed_by(u1), False)
+
+    def test_user_signup(self):
+        """ test User.create with valid credentials and invalid credentials """
+        u_null = ["email=None",
+                  "username='testuser_null'",
+                  "password=None"]
+
+        u_valid = ["email='test@test.com'",
+                   "username='testuser_valid'",
+                   "password='password'"]
+
+# u_null shouldn't work, but what Error do we get?
+        User.signup(*u_null)
+        User.signup(*u_valid)
