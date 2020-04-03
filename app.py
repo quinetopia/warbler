@@ -129,7 +129,8 @@ def logout():
 
 ##############################################################################
 # General user routes:
-
+# TODO route doesn't work, returns:
+# The requested URL was not found on the server.
 @app.route('/users')
 def list_users():
     """Page with listing of users.
@@ -150,6 +151,10 @@ def list_users():
 @app.route('/users/<int:user_id>')
 def users_show(user_id):
     """Show user profile."""
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
 
     user = User.query.get_or_404(user_id)
 

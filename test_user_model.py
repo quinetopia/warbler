@@ -110,14 +110,20 @@ class UserModelTestCase(TestCase):
 
     def test_user_signup(self):
         """ test User.create with valid credentials and invalid credentials """
+
         u_null = ["email=None",
                   "username='testuser_null'",
                   "password=None"]
 
-        u_valid = ["email='test@test.com'",
-                   "username='testuser_valid'",
-                   "password='password'"]
+        u_email_not_unique = ["email='test1@test.com'",
+                              "username='testuser_valid'",
+                              "password='password'"]
 
-# u_null shouldn't work, but what Error do we get?
+        u_valid = ["email=unique@email.edu",
+                   "username='validUser'",
+                   "password=cleverpassword"]
+
+        # u_null shouldn't work, but what Error do we get?
         User.signup(*u_null)
+        User.signup(*u_email_not_unique)
         User.signup(*u_valid)
